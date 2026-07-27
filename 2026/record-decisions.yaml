@@ -26,8 +26,8 @@ decision: |
 
   Records follow Michael Nygard's ADR format: title, status, context,
   decision, consequences, compliance, notes. Plain-text YAML, one decision
-  per file, versioned in git, numbered monotonically, immutable once
-  accepted. Chosen over a wiki page because a wiki invites silent editing,
+  per file, identified by its URL rather than a number, versioned in git,
+  immutable once accepted. Chosen over a wiki page because a wiki invites silent editing,
   and the whole value here is that a decision's history cannot be quietly
   rewritten.
 

@@ -16,69 +16,251 @@ import yaml
 ROOT = Path(__file__).parent
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "site")
 
-CSS = """
-:root { color-scheme: light dark; --fg: #1a1a1a; --dim: #666; --line: #ddd; }
-@media (prefers-color-scheme: dark) {
-  :root { --fg: #e8e8e8; --dim: #999; --line: #333; }
-}
-body { max-width: 42rem; margin: 3rem auto; padding: 0 1.5rem; color: var(--fg);
-       font: 1rem/1.6 system-ui, sans-serif; }
-h1 { font-size: 1.6rem; margin-bottom: .25rem; }
-h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
-     color: var(--dim); margin: 2rem 0 .5rem; }
-a { color: inherit; }
-ul.adrs { list-style: none; padding: 0; }
-ul.adrs li { border-bottom: 1px solid var(--line); padding: .75rem 0; }
-.meta { color: var(--dim); font-size: .85rem; }
-.status { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;
-          border: 1px solid currentColor; border-radius: 2em; padding: .1em .6em; }
-.Accepted { color: #1a7f37; } .Proposed { color: #9a6700; } .Superseded { color: #888; }
-dl { margin: 0; } dt { font-weight: 600; } dd { margin: 0 0 .5rem; }
-.feedback { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 1rem;
-            font-size: .9rem; }
-"""
-
+SITE = "decisions.dabase.com"
 SITE_FEEDBACK = "hendry@iki.fi"  # index page; each decision names its own
 REPO = "https://github.com/kaihendry/decisions"  # rule 3: the audit trail
+
+CSS = """
+:root {
+  color-scheme: light dark;
+  --bg:     #fcfbf8;
+  --fg:     #1b1a17;
+  --dim:    #6d6a62;
+  --rule:   #e4dfd4;
+  --accent: #8a3324;
+  --ok:     #1a7f37;
+  --warn:   #9a6700;
+  --serif:  Charter, "Bitstream Charter", "Iowan Old Style", Georgia, serif;
+  --sans:   system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:   ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:     #161513;
+    --fg:     #e6e3dc;
+    --dim:    #9a958a;
+    --rule:   #322f2a;
+    --accent: #e08b7a;
+    --ok:     #4ac26b;
+    --warn:   #d4a72c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: 1.0625rem/1.65 var(--serif);
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: .15em; }
+a:hover { text-decoration-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---- masthead ---- */
+
+.up {
+  font: .8125rem/1 var(--sans);
+  letter-spacing: .02em;
+  color: var(--dim);
+  margin: 0 0 2.5rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  margin: 0 0 .75rem;
+  text-wrap: balance;
+}
+
+.byline {
+  font: .8125rem/1.5 var(--sans);
+  color: var(--dim);
+  margin: 0 0 .5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+  align-items: center;
+}
+
+.canonical {
+  font: .75rem/1.5 var(--mono);
+  color: var(--dim);
+  word-break: break-all;
+  margin: 0 0 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.status {
+  font: 600 .6875rem/1 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border: 1px solid currentColor;
+  border-radius: 2em;
+  padding: .35em .7em .3em;
+  white-space: nowrap;
+}
+.Accepted   { color: var(--ok); }
+.Proposed   { color: var(--warn); }
+.Superseded { color: var(--dim); }
+
+.superseded-by {
+  border-left: 3px solid var(--warn);
+  padding: .5rem 0 .5rem 1rem;
+  margin: 0 0 2rem;
+  font-size: .9375rem;
+}
+
+/* ---- sections ---- */
+
+h2 {
+  font: 600 .6875rem/1 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .11em;
+  color: var(--dim);
+  margin: 2.75rem 0 .85rem;
+}
+
+p { margin: 0 0 1.15rem; }
+
+h3 {
+  font: 600 .8125rem/1 var(--sans);
+  color: var(--dim);
+  margin: 1.5rem 0 .6rem;
+}
+
+ul { margin: 0 0 1.15rem; padding-left: 1.15rem; }
+li { margin-bottom: .4rem; }
+li::marker { color: var(--dim); }
+.positive li::marker { content: "+  "; color: var(--ok); font-weight: 700; }
+.negative li::marker { content: "\\2212  "; color: var(--accent); font-weight: 700; }
+.positive, .negative { list-style: none; padding-left: 1.15rem; }
+
+dl { margin: 0; font-size: .9375rem; }
+dt {
+  font: 600 .6875rem/1.4 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--dim);
+  margin-top: .85rem;
+}
+dd { margin: .15rem 0 0; word-break: break-word; }
+
+/* ---- index ---- */
+
+.adrs { list-style: none; margin: 0; padding: 0; }
+.adrs li { margin: 0; border-bottom: 1px solid var(--rule); }
+.adrs li:first-child { border-top: 1px solid var(--rule); }
+.adrs a {
+  display: block;
+  padding: 1.15rem 0;
+  text-decoration: none;
+}
+.adrs a:hover .t { text-decoration: underline; text-decoration-color: var(--accent); }
+.adrs .t { display: block; font-size: 1.0625rem; margin-bottom: .5rem; text-wrap: balance; }
+
+.lede { color: var(--dim); font-size: .9375rem; margin: -.25rem 0 2.5rem; }
+
+/* ---- footer ---- */
+
+.feedback {
+  margin: 4rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font: .875rem/1.6 var(--sans);
+}
+.feedback a { text-decoration-color: var(--accent); }
+.feedback .note { display: block; margin-top: .4rem; color: var(--dim); font-size: .8125rem; }
+
+@media print {
+  :root { --bg: #fff; --fg: #000; --dim: #444; --rule: #bbb; }
+  body { max-width: none; padding: 0; font-size: 11pt; }
+  .up, .feedback a { text-decoration: none; }
+  h2 { break-after: avoid; }
+  li, p { break-inside: avoid; }
+}
+"""
+
+
+def esc(s):
+    return html.escape(str(s))
+
+
+def link(url, text=None):
+    return f'<a href="{esc(url)}">{esc(text or url)}</a>'
+
+
+def page(title, body):
+    """Assemble a full document. body is a list of lines, indented one level."""
+    return "\n".join(
+        [
+            "<!doctype html>",
+            '<html lang="en">',
+            "<head>",
+            '  <meta charset="utf-8">',
+            '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+            f"  <title>{esc(title)}</title>",
+            "  <style>",
+            *[f"  {ln}" if ln.strip() else "" for ln in CSS.strip().splitlines()],
+            "  </style>",
+            "</head>",
+            "<body>",
+            *[f"  {ln}" if ln.strip() else "" for ln in body],
+            "</body>",
+            "</html>",
+            "",
+        ]
+    )
+
+
+def paras(text):
+    """Prose block -> <p> lines, keeping the source's line breaks for readability."""
+    out = []
+    for block in text.strip().split("\n\n"):
+        lines = [esc(ln.strip()) for ln in block.strip().splitlines() if ln.strip()]
+        if not lines:
+            continue
+        if len(lines) == 1:
+            out.append(f"<p>{lines[0]}</p>")
+        else:
+            out += ["<p>", *[f"  {ln}" for ln in lines], "</p>"]
+    return out
+
+
+def items(xs, cls):
+    return [f'<ul class="{cls}">', *[f"  <li>{esc(x)}</li>" for x in xs], "</ul>"]
+
+
+def status_badge(s):
+    return f'<span class="status {s}">{esc(s)}</span>'
 
 
 def feedback_block(to, source=None):
     href = to if to.startswith("http") else f"mailto:{to}"
     hist = f"{REPO}/commits/main/{source}" if source else f"{REPO}/commits/main"
     what = "this record" if source else "every record"
-    return (
-        f'<p class=feedback>Disagree, or spot something wrong? '
-        f'<a href="{html.escape(href)}">{html.escape(to)}</a><br>'
-        f'<span class=meta>Records change by being superseded, so say so and '
-        f'it gets a new one. '
-        f'Every change to {what} is in the '
-        f'<a href="{html.escape(hist)}">commit history</a>.</span></p>'
-    )
-
-
-def page(title, body):
-    return (
-        f"<!doctype html><html lang=en><meta charset=utf-8>"
-        f'<meta name=viewport content="width=device-width,initial-scale=1">'
-        f"<title>{html.escape(title)}</title><style>{CSS}</style>{body}"
-    )
-
-
-def paras(text):
-    return "".join(
-        f"<p>{html.escape(b.strip())}</p>" for b in text.strip().split("\n\n") if b.strip()
-    )
-
-
-def items(xs):
-    return "<ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in xs) + "</ul>"
+    return [
+        '<p class="feedback">',
+        f"  Disagree, or spot something wrong? {link(href, to)}",
+        '  <span class="note">',
+        "    Records change by being superseded, so say so and it gets a new one.",
+        f"    Every change to {what} is in the {link(hist, 'commit history')}.",
+        "  </span>",
+        "</p>",
+    ]
 
 
 def load():
     schema = yaml.safe_load((ROOT / "adr.schema.yaml").read_text())
-    validator = jsonschema.Draft202012Validator(
-        schema, format_checker=jsonschema.FormatChecker()
-    )
+    validator = jsonschema.Draft202012Validator(schema)
     adrs, seen = [], {}
     for path in sorted(ROOT.glob("[0-9][0-9][0-9][0-9]/*.yaml")):
         adr = yaml.safe_load(path.read_text())
@@ -102,48 +284,72 @@ def load():
 
 def render(adr):
     n = adr["notes"]
-    parts = [
-        '<p class=meta><a href="../../">Decisions</a></p>',
-        f'<h1>{html.escape(adr["title"])}</h1>',
-        f'<p class=meta><span class="status {adr["status"]}">{adr["status"]}</span> '
-        f'&middot; {adr["date"]} &middot; {html.escape(n["owner"])}</p>',
+    body = [
+        '<p class="up"><a href="../../">&larr; Decisions</a></p>',
+        f"<h1>{esc(adr['title'])}</h1>",
+        '<p class="byline">',
+        f"  {status_badge(adr['status'])}",
+        f"  <span>{esc(adr['date'])}</span>",
+        f"  <span>{esc(n['owner'])}</span>",
+        "</p>",
+        f'<p class="canonical">{SITE}/{esc(adr["date"])}/{esc(adr["slug"])}</p>',
     ]
     if sb := adr.get("supersededBy"):
-        parts.append(f'<p>Superseded by <a href="{html.escape(sb)}">{html.escape(sb)}</a>.</p>')
-    parts += [
-        "<h2>Context</h2>", paras(adr["context"]),
-        "<h2>Decision</h2>", paras(adr["decision"]),
+        body += [
+            '<p class="superseded-by">',
+            f"  This decision has been superseded by {link(sb)}.",
+            "</p>",
+        ]
+    body += [
+        "<h2>Context</h2>",
+        *paras(adr["context"]),
+        "<h2>Decision</h2>",
+        *paras(adr["decision"]),
         "<h2>Consequences</h2>",
-        "<p>Positive</p>", items(adr["consequences"]["positive"]),
-        "<p>Negative</p>", items(adr["consequences"]["negative"]),
-        "<h2>Compliance</h2>", paras(adr["compliance"]),
-        "<h2>Notes</h2>", "<dl>",
+        "<h3>Positive</h3>",
+        *items(adr["consequences"]["positive"], "positive"),
+        "<h3>Negative</h3>",
+        *items(adr["consequences"]["negative"], "negative"),
+        "<h2>Compliance</h2>",
+        *paras(adr["compliance"]),
+        "<h2>Notes</h2>",
+        "<dl>",
     ]
     for k, v in n.items():
         v = ", ".join(v) if isinstance(v, list) else str(v)
-        v = html.escape(v)
-        if v.startswith("http"):
-            v = f'<a href="{v}">{v}</a>'
-        parts.append(f"<dt>{html.escape(k)}</dt><dd>{v}</dd>")
-    parts.append("</dl>")
-    parts.append(feedback_block(adr["feedback"], adr["source"]))
-    return page(adr["title"], "".join(parts))
+        v = link(v) if v.startswith("http") else esc(v)
+        body += [f"  <dt>{esc(k)}</dt>", f"  <dd>{v}</dd>"]
+    body += ["</dl>", *feedback_block(adr["feedback"], adr["source"])]
+    return page(adr["title"], body)
 
 
 def index(adrs):
     rows = []
     for adr in sorted(adrs, key=lambda a: (a["date"], a["slug"]), reverse=True):
-        href = f'{adr["date"]}/{adr["slug"]}/'
-        rows.append(
-            f'<li><a href="{href}">{html.escape(adr["title"])}</a>'
-            f'<div class=meta><span class="status {adr["status"]}">{adr["status"]}</span> '
-            f'&middot; {adr["date"]} &middot; {html.escape(adr["notes"]["owner"])}</div></li>'
-        )
-    return page(
-        "Decisions",
-        f"<h1>Decisions</h1><ul class=adrs>{''.join(rows)}</ul>"
-        + feedback_block(SITE_FEEDBACK),
-    )
+        rows += [
+            "  <li>",
+            f'    <a href="{esc(adr["date"])}/{esc(adr["slug"])}/">',
+            f'      <span class="t">{esc(adr["title"])}</span>',
+            '      <span class="byline">',
+            f"        {status_badge(adr['status'])}",
+            f"        <span>{esc(adr['date'])}</span>",
+            f"        <span>{esc(adr['notes']['owner'])}</span>",
+            "      </span>",
+            "    </a>",
+            "  </li>",
+        ]
+    body = [
+        "<h1>Decisions</h1>",
+        '<p class="lede">',
+        f"  Every decision made here has one record at {SITE}/YYYY-MM-DD/decision-name.",
+        "  Anything else said about a decision links back to its record.",
+        "</p>",
+        '<ul class="adrs">',
+        *rows,
+        "</ul>",
+        *feedback_block(SITE_FEEDBACK),
+    ]
+    return page("Decisions", body)
 
 
 adrs = load()
