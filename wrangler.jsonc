@@ -1,0 +1,19 @@
+{
+  // Static-assets-only Worker: no server code, just ./site uploaded to the edge.
+  "name": "decisions",
+  "compatibility_date": "2026-07-27",
+  "assets": {
+    "directory": "./site"
+    // Leave html_handling at the default "auto-trailing-slash".
+    // "drop-trailing-slash" makes /YYYY-MM-DD/slug a 200 instead of a 307,
+    // but reduces "/" to "" and serves a 500 on the index. Not worth it.
+  },
+  // dabase.com's DNS is already on Cloudflare, so this creates the
+  // decisions.dabase.com CNAME for us on first deploy.
+  "routes": [
+    {
+      "pattern": "decisions.dabase.com",
+      "custom_domain": true
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+date: "2026-07-27"
+slug: record-decisions
+title: Record every decision at decisions.dabase.com/YYYY-MM-DD/decision-name
+status: Accepted
+feedback: hendry@iki.fi
+
+context: |
+  Decisions reach people through many mediums — town halls, video, email,
+  newsletters, chat. Every retelling drifts a little, and none of them is
+  authoritative, so the same question gets re-litigated months later by
+  people who were in a different room.
+
+  When this is raised, the conversation reliably turns to which medium the
+  message should go out on. That is the wrong argument. Repetition across
+  many mediums is good and we want all of them. What is missing is not a
+  channel, it is a canonical thing for every channel to point at.
+
+decision: |
+  Every decision gets one record at decisions.dabase.com/YYYY-MM-DD/decision-name,
+  stating at minimum its status, its owner, and an address to reply to. Every
+  other piece of communication about that decision — short, long, video,
+  newsletter, email, town hall — must link to it.
+
+  The reply address is not decoration. A record that cannot be argued with is
+  an announcement wearing a record's clothes, and people stop reading it.
+
+  Records follow Michael Nygard's ADR format: title, status, context,
+  decision, consequences, compliance, notes. Plain-text YAML, one decision
+  per file, versioned in git, numbered monotonically, immutable once
+  accepted. Chosen over a wiki page because a wiki invites silent editing,
+  and the whole value here is that a decision's history cannot be quietly
+  rewritten.
+
+  This record is itself the first application of the rule.
+
+consequences:
+  positive:
+    - Every medium can be as loose or as polished as it likes, because the link carries the precise version.
+    - "\"Why do we do it this way?\" has an address, including for people who joined after the fact."
+    - Superseding is visible. A reversed decision leaves a trail instead of a gap.
+    - Objections arrive at a named person instead of dissipating into a corridor.
+  negative:
+    - Writing the record is real work, and it lands on whoever is least keen to do it.
+    - A record nobody links to is worse than none, because it looks authoritative while going stale.
+    - Requires someone to own the corpus, not merely each entry.
+
+compliance: |
+  No announcement, deck or town-hall slide about a decision ships without a
+  link to its record; comms review checks for the link and bounces anything
+  without one.
+
+  The build validates every record against the schema and fails on a missing
+  field, a duplicate number or a superseded record with no successor. Records
+  overdue for review are listed on the index.
+
+notes:
+  owner: Head of Engineering
+  deciders: [CTO, Head of Engineering, Head of Communications]
+  reviewBy: "2027-07-27"
+  tags: [meta, governance, communications]
+  reference: https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions
