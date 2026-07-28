@@ -6,8 +6,10 @@
 """Build the decision site from YYYY/*.yaml. Usage: ./build.py [outdir]"""
 
 import html
+import re
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 
 import jsonschema
@@ -19,6 +21,12 @@ OUT = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "site")
 SITE = "decisions.dabase.com"
 SITE_FEEDBACK = "hendry@iki.fi"  # index page; each decision names its own
 REPO = "https://github.com/kaihendry/decisions"  # rule 3: the audit trail
+
+SLUG = re.compile(r"^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$")  # the filename is the slug
+
+# Soft length budgets (chars). Over these, build.py warns but still succeeds —
+# a nudge to keep a record consumable, not a wall of text. See RULES.md.
+BUDGET = {"summary": 240, "context": 1200, "decision": 1500, "compliance": 800}
 
 CSS = """
 :root {
@@ -91,12 +99,30 @@ h1 {
 }
 
 .canonical {
-  font: .75rem/1.5 var(--mono);
-  color: var(--dim);
-  word-break: break-all;
   margin: 0 0 2.5rem;
-  padding-bottom: 2rem;
+  padding: 0 0 2rem;
   border-bottom: 1px solid var(--rule);
+}
+.copy {
+  font: 600 .6875rem/1 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2em;
+  padding: .5em .9em .45em;
+  cursor: pointer;
+}
+.copy:hover { border-color: var(--accent); }
+.copy.copied { color: var(--ok); border-color: var(--ok); }
+
+.summary {
+  font: 1.25rem/1.5 var(--serif);
+  margin: 0 0 2.5rem;
+  padding: 0 0 2rem;
+  border-bottom: 1px solid var(--rule);
+  text-wrap: pretty;
 }
 
 .status {
@@ -127,7 +153,16 @@ h2 {
   letter-spacing: .11em;
   color: var(--dim);
   margin: 2.75rem 0 .85rem;
+  scroll-margin-top: 2rem;
 }
+h2 .anchor {
+  margin-left: .4em;
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity .12s;
+}
+h2:hover .anchor, h2 .anchor:focus-visible { opacity: 1; }
 
 p { margin: 0 0 1.15rem; }
 
@@ -159,6 +194,7 @@ dd { margin: .15rem 0 0; word-break: break-word; }
 .adrs { list-style: none; margin: 0; padding: 0; }
 .adrs li { margin: 0; border-bottom: 1px solid var(--rule); }
 .adrs li:first-child { border-top: 1px solid var(--rule); }
+.adrs li:last-child { border-bottom: 0; }  /* feedback block's top rule closes the list */
 .adrs a {
   display: block;
   padding: 1.15rem 0;
@@ -184,8 +220,21 @@ dd { margin: .15rem 0 0; word-break: break-word; }
   :root { --bg: #fff; --fg: #000; --dim: #444; --rule: #bbb; }
   body { max-width: none; padding: 0; font-size: 11pt; }
   .up, .feedback a { text-decoration: none; }
+  .canonical, h2 .anchor { display: none; }
   h2 { break-after: avoid; }
   li, p { break-inside: avoid; }
+}
+"""
+
+
+SCRIPT = """
+for (const b of document.querySelectorAll('.copy')) {
+  b.addEventListener('click', () => {
+    navigator.clipboard.writeText(b.dataset.copy);
+    b.textContent = 'Copied';
+    b.classList.add('copied');
+    setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('copied'); }, 1500);
+  });
 }
 """
 
@@ -198,27 +247,55 @@ def link(url, text=None):
     return f'<a href="{esc(url)}">{esc(text or url)}</a>'
 
 
-def page(title, body):
-    """Assemble a full document. body is a list of lines, indented one level."""
-    return "\n".join(
-        [
-            "<!doctype html>",
-            '<html lang="en">',
-            "<head>",
-            '  <meta charset="utf-8">',
-            '  <meta name="viewport" content="width=device-width, initial-scale=1">',
-            f"  <title>{esc(title)}</title>",
-            "  <style>",
-            *[f"  {ln}" if ln.strip() else "" for ln in CSS.strip().splitlines()],
-            "  </style>",
-            "</head>",
-            "<body>",
-            *[f"  {ln}" if ln.strip() else "" for ln in body],
-            "</body>",
-            "</html>",
-            "",
-        ]
+def heading(text):
+    """<h2> with a hover anchor, so any section can be deep-linked."""
+    slug = text.lower()
+    return (
+        f'<h2 id="{slug}">{esc(text)}'
+        f' <a class="anchor" href="#{slug}" aria-label="Link to {esc(text)}">#</a></h2>'
     )
+
+
+def age(iso):
+    """Human age of a decision, relative to the build date."""
+    days = (date.today() - date.fromisoformat(iso)).days
+    if days <= 0:
+        return "today"
+    if days == 1:
+        return "yesterday"
+    if days < 14:
+        return f"{days} days ago"
+    if days < 60:
+        return f"{days // 7} weeks ago"
+    if days < 730:
+        return f"{days // 30} months ago"
+    return f"{days // 365} years ago"
+
+
+def page(title, body, script=""):
+    """Assemble a full document. body is a list of lines, indented one level."""
+    doc = [
+        "<!doctype html>",
+        '<html lang="en">',
+        "<head>",
+        '  <meta charset="utf-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+        f"  <title>{esc(title)}</title>",
+        "  <style>",
+        *[f"  {ln}" if ln.strip() else "" for ln in CSS.strip().splitlines()],
+        "  </style>",
+        "</head>",
+        "<body>",
+        *[f"  {ln}" if ln.strip() else "" for ln in body],
+    ]
+    if script:
+        doc += [
+            "  <script>",
+            *[f"  {ln}" if ln.strip() else "" for ln in script.strip().splitlines()],
+            "  </script>",
+        ]
+    doc += ["</body>", "</html>", ""]
+    return "\n".join(doc)
 
 
 def paras(text):
@@ -271,19 +348,25 @@ def load():
             sys.exit(1)
         if not adr["date"].startswith(path.parent.name):
             sys.exit(f"{path}: date {adr['date']} does not match directory")
-        if adr["slug"] != path.stem:
-            sys.exit(f"{path}: slug {adr['slug']} does not match filename")
+        if not SLUG.match(path.stem):
+            sys.exit(f"{path}: filename {path.name} is not a valid slug ({SLUG.pattern})")
+        adr["slug"] = path.stem  # identity is the filename
+        adr["source"] = str(path.relative_to(ROOT))  # both added after validation
         url = f"{adr['date']}/{adr['slug']}"
         if url in seen:
             sys.exit(f"{path}: {url} already taken by {seen[url]}")
         seen[url] = path
-        adr["source"] = str(path.relative_to(ROOT))  # added after validation
+        for field, limit in BUDGET.items():
+            n = len(adr[field].strip())
+            if n > limit:
+                print(f"warning: {path}: {field} is {n} chars, over the {limit} budget", file=sys.stderr)
         adrs.append(adr)
     return adrs
 
 
 def render(adr):
     n = adr["notes"]
+    url = f"{SITE}/{adr['date']}/{adr['slug']}"
     body = [
         '<p class="up"><a href="../../">&larr; Decisions</a></p>',
         f"<h1>{esc(adr['title'])}</h1>",
@@ -292,7 +375,10 @@ def render(adr):
         f"  <span>{esc(adr['date'])}</span>",
         f"  <span>{esc(n['owner'])}</span>",
         "</p>",
-        f'<p class="canonical">{SITE}/{esc(adr["date"])}/{esc(adr["slug"])}</p>',
+        '<p class="canonical">',
+        f'  <button class="copy" type="button" data-copy="https://{esc(url)}">Copy link</button>',
+        "</p>",
+        f'<p class="summary">{esc(adr["summary"])}</p>',
     ]
     if sb := adr.get("supersededBy"):
         body += [
@@ -301,18 +387,18 @@ def render(adr):
             "</p>",
         ]
     body += [
-        "<h2>Context</h2>",
+        heading("Context"),
         *paras(adr["context"]),
-        "<h2>Decision</h2>",
+        heading("Decision"),
         *paras(adr["decision"]),
-        "<h2>Consequences</h2>",
+        heading("Consequences"),
         "<h3>Positive</h3>",
         *items(adr["consequences"]["positive"], "positive"),
         "<h3>Negative</h3>",
         *items(adr["consequences"]["negative"], "negative"),
-        "<h2>Compliance</h2>",
+        heading("Compliance"),
         *paras(adr["compliance"]),
-        "<h2>Notes</h2>",
+        heading("Notes"),
         "<dl>",
     ]
     for k, v in n.items():
@@ -320,7 +406,7 @@ def render(adr):
         v = link(v) if v.startswith("http") else esc(v)
         body += [f"  <dt>{esc(k)}</dt>", f"  <dd>{v}</dd>"]
     body += ["</dl>", *feedback_block(adr["feedback"], adr["source"])]
-    return page(adr["title"], body)
+    return page(adr["title"], body, SCRIPT)
 
 
 def index(adrs):
@@ -332,7 +418,7 @@ def index(adrs):
             f'      <span class="t">{esc(adr["title"])}</span>',
             '      <span class="byline">',
             f"        {status_badge(adr['status'])}",
-            f"        <span>{esc(adr['date'])}</span>",
+            f"        <span>{esc(adr['date'])} &middot; {esc(age(adr['date']))}</span>",
             f"        <span>{esc(adr['notes']['owner'])}</span>",
             "      </span>",
             "    </a>",

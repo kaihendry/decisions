@@ -8,20 +8,22 @@ the newsletter, the email — links back to that URL rather than restating the
 decision and drifting from it.
 
 Format is [Michael Nygard's][nygard]: title, status, context, decision,
-consequences, compliance, notes. The rules the format comes with, and how
-much of each one this repo actually enforces, are in [RULES.md](RULES.md).
+consequences, compliance, notes — plus a one-line `summary` standfirst so a
+reader gets the decision before any prose. The rules the format comes with, and
+how much of each one this repo actually enforces, are in [RULES.md](RULES.md).
 
 [nygard]: https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions
 
 ## Adding a decision
 
-Create `YYYY/<slug>.yaml`, where the year matches the decision's date and the
-slug matches its filename:
+Create `YYYY/<slug>.yaml`, where the year matches the decision's date. The
+filename *is* the slug — the second segment of the canonical URL — so there is
+nothing to repeat inside the file:
 
 ```yaml
 date: "2026-07-27"
-slug: record-decisions
 title: Record every decision at decisions.dabase.com/YYYY-MM-DD/decision-name
+summary: One canonical record per decision; every retelling links to it.
 status: Accepted            # Proposed | Accepted | Superseded
 feedback: hendry@iki.fi     # an address that accepts replies
 
@@ -58,9 +60,9 @@ make clean    # remove ./site
 ```
 
 `make build` fails loudly on a missing field, a bad status, a date that
-disagrees with the directory, a slug that disagrees with the filename, a
-duplicate URL, or a `Superseded` record with no `supersededBy`. A record that
-doesn't validate never reaches the site.
+disagrees with the directory, a filename that isn't a valid slug, a duplicate
+URL, or a `Superseded` record with no `supersededBy`. A record that doesn't
+validate never reaches the site.
 
 ## How it works
 

@@ -14,7 +14,7 @@
 | 1 | Not machine-checkable. Review catches it — one `decision:` block, one call. |
 | 2 | YAML source, no binary formats. |
 | 3 | git, published at https://github.com/kaihendry/decisions. Every page links to its own file's commit history — that link *is* the immutability evidence for rule 6. |
-| 4 | One decision per `YYYY/<slug>.yaml`; `build.py` checks filename matches `slug` and directory matches `date`. |
+| 4 | One decision per `YYYY/<slug>.yaml`; the filename *is* the slug, and `build.py` checks it is a valid slug and the directory matches `date`. |
 | 5 | Partially. See below — the date orders records, `build.py` rejects duplicate `date/slug`. |
 | 6 | The `status` enum plus the schema's conditional: `Superseded` requires `supersededBy`. |
 
@@ -54,8 +54,20 @@ one. It also makes the URL self-describing in a town hall — you say
 "see slash 2026-07-17 slash approve-llm-assistants" and people already know
 what it says.
 
-The schema permits mixed case (`AI-policy` is legal) but lowercase is the
+The slug pattern permits mixed case (`AI-policy` is legal) but lowercase is the
 house style.
+
+## Easy to consume: a summary, and a length budget
+
+A record is only useful if people read it, and a wall of text gets skimmed.
+Two things guard against that:
+
+- Every record opens with a one-line `summary` — the decision distilled to a
+  sentence, rendered as a standfirst above the prose. A reader gets what was
+  decided before choosing how deep to go: title, then summary, then sections.
+- `build.py` carries a soft length budget per field (`BUDGET`). Over budget it
+  prints a warning but still builds — a nudge, not a gate, because the right
+  length is a judgement call and a hard cap would invite gaming over clarity.
 
 ## Two frictions worth knowing
 

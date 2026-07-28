@@ -1,9 +1,11 @@
 date: "2026-07-27"
-slug: record-decisions
 title: Record every decision at decisions.dabase.com/YYYY-MM-DD/decision-name
+summary: >-
+  Every decision gets one canonical record at a stable URL, and every
+  retelling — email, town hall, deck — links to that record instead of
+  restating it.
 status: Accepted
 feedback: hendry@iki.fi
-
 context: |
   Decisions reach people through many mediums — town halls, video, email,
   newsletters, chat. Every retelling drifts a little, and none of them is
@@ -14,7 +16,6 @@ context: |
   message should go out on. That is the wrong argument. Repetition across
   many mediums is good and we want all of them. What is missing is not a
   channel, it is a canonical thing for every channel to point at.
-
 decision: |
   Every decision gets one record at decisions.dabase.com/YYYY-MM-DD/decision-name,
   stating at minimum its status, its owner, and an address to reply to. Every
@@ -32,7 +33,6 @@ decision: |
   rewritten.
 
   This record is itself the first application of the rule.
-
 consequences:
   positive:
     - Every medium can be as loose or as polished as it likes, because the link carries the precise version.
@@ -43,7 +43,6 @@ consequences:
     - Writing the record is real work, and it lands on whoever is least keen to do it.
     - A record nobody links to is worse than none, because it looks authoritative while going stale.
     - Requires someone to own the corpus, not merely each entry.
-
 compliance: |
   No announcement, deck or town-hall slide about a decision ships without a
   link to its record; comms review checks for the link and bounces anything
@@ -52,7 +51,6 @@ compliance: |
   The build validates every record against the schema and fails on a missing
   field, a duplicate number or a superseded record with no successor. Records
   overdue for review are listed on the index.
-
 notes:
   owner: Head of Engineering
   deciders: [CTO, Head of Engineering, Head of Communications]

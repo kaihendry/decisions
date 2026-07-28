@@ -4,27 +4,29 @@ $id: https://decisions.dabase.com/adr.schema.yaml
 title: Architecture Decision Record
 type: object
 additionalProperties: false
-required: [date, slug, title, status, feedback, context, decision, consequences, compliance, notes]
+required: [date, title, summary, status, feedback, context, decision, consequences, compliance, notes]
 
-# Identity is the canonical URL: <date>/<slug>. There is no separate number.
+# Identity is the canonical URL: <date>/<slug>. There is no separate number, and
+# no slug field — the filename is the slug, checked by build.py against the same
+# pattern the schema used to enforce. Name the decision, not the topic: verb-first,
+# e.g. approve-llm-assistants, not ai-policy. See RULES.md.
 properties:
   date:
     description: Decision date, first path segment of the canonical URL
     type: string
     pattern: '^\d{4}-\d{2}-\d{2}$'
 
-  slug:
-    description: >
-      Decision name, second path segment — /YYYY-MM-DD/<slug>.
-      Name the decision, not the topic: verb-first, e.g. approve-llm-assistants,
-      not ai-policy. See RULES.md.
-    type: string
-    pattern: '^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$'
-
   title:
     description: Short description stating the decision
     type: string
     maxLength: 100
+
+  summary:
+    description: >
+      The decision in one plain sentence — the standfirst a reader sees before
+      any prose. Not the rationale; what was decided and why it matters. Kept
+      short; build.py warns past its budget. See RULES.md.
+    type: string
 
   status:
     description: Proposed, Accepted or Superseded
