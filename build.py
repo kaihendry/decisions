@@ -411,7 +411,7 @@ def render(adr):
 
 def index(adrs):
     rows = []
-    for adr in sorted(adrs, key=lambda a: (a["date"], a["slug"]), reverse=True):
+    for adr in newest_first(adrs):
         rows += [
             "  <li>",
             f'    <a href="{esc(adr["date"])}/{esc(adr["slug"])}/">',
@@ -438,6 +438,98 @@ def index(adrs):
     return page("Decisions", body)
 
 
+def canonical(adr):
+    return f"https://{SITE}/{adr['date']}/{adr['slug']}/"
+
+
+def newest_first(adrs):
+    return sorted(adrs, key=lambda a: (a["date"], a["slug"]), reverse=True)
+
+
+def md_record(adr):
+    """One decision as Markdown — the body of llms-full.txt."""
+    n = adr["notes"]
+    out = [
+        f"# {adr['title']}",
+        "",
+        canonical(adr),
+        "",
+        f"{adr['status']} · {adr['date']} · {n['owner']}",
+        "",
+        f"> {adr['summary'].strip()}",
+        "",
+    ]
+    if sb := adr.get("supersededBy"):
+        out += [f"**Superseded by {sb}**", ""]
+    out += [
+        "## Context", "", adr["context"].strip(), "",
+        "## Decision", "", adr["decision"].strip(), "",
+        "## Consequences", "",
+        "### Positive", "",
+        *[f"- {x}" for x in adr["consequences"]["positive"]], "",
+        "### Negative", "",
+        *[f"- {x}" for x in adr["consequences"]["negative"]], "",
+        "## Compliance", "", adr["compliance"].strip(), "",
+        "## Notes", "",
+    ]
+    for k, v in n.items():
+        out.append(f"- {k}: {', '.join(v) if isinstance(v, list) else v}")
+    return "\n".join(out)
+
+
+def llms_txt(adrs):
+    """An /llms.txt index: what the site is, then a link per decision."""
+    lines = [
+        "# Decisions",
+        "",
+        f"> Architecture decision records published at https://{SITE}. One "
+        "decision, one record, one canonical URL — every other communication "
+        "(email, town hall, deck, video) links back to the record instead of "
+        "restating it.",
+        "",
+        "Records follow Michael Nygard's ADR format (context, decision, "
+        "consequences, compliance) and are immutable once accepted: a reversed "
+        "decision is superseded by a new record, never edited in place. Cite a "
+        "decision by its canonical URL.",
+        "",
+        "## Decisions",
+        "",
+    ]
+    for adr in newest_first(adrs):
+        lines.append(
+            f"- [{adr['title']}]({canonical(adr)}): "
+            f"{adr['status']}, {adr['date']}. {adr['summary'].strip()}"
+        )
+    lines += [
+        "",
+        "## Optional",
+        "",
+        f"- [Full text of every decision](https://{SITE}/llms-full.txt): all "
+        "records inline as one Markdown file.",
+        f"- [Record schema](https://{SITE}/adr.schema.yaml): the JSON Schema "
+        "every record validates against.",
+        f"- [Source repository]({REPO}): YAML records and build; the commit "
+        "history is the audit trail.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def llms_full(adrs):
+    """An /llms-full.txt: every record inline as Markdown, newest first."""
+    parts = [
+        "# Decisions — full text",
+        "",
+        f"> Every architecture decision record from https://{SITE}, inline as "
+        "one Markdown file. The canonical URL under each title is the thing to "
+        "cite, not this file.",
+        "",
+    ]
+    for adr in newest_first(adrs):
+        parts += ["---", "", md_record(adr), ""]
+    return "\n".join(parts)
+
+
 adrs = load()
 shutil.rmtree(OUT, ignore_errors=True)
 OUT.mkdir(parents=True)
@@ -446,4 +538,7 @@ for adr in adrs:
     d = OUT / adr["date"] / adr["slug"]
     d.mkdir(parents=True)
     (d / "index.html").write_text(render(adr))
+(OUT / "llms.txt").write_text(llms_txt(adrs) + "\n")
+(OUT / "llms-full.txt").write_text(llms_full(adrs) + "\n")
+shutil.copy(ROOT / "adr.schema.yaml", OUT / "adr.schema.yaml")
 print(f"{len(adrs)} decisions -> {OUT}")

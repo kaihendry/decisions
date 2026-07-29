@@ -69,11 +69,25 @@ validate never reaches the site.
 - `adr.schema.yaml` — JSON Schema (2020-12), written in YAML.
 - `build.py` — the whole generator. A [uv][uv] inline script, so there is no
   virtualenv to create and no lockfile: `./build.py` just runs. Reads the
-  YAML, validates it, writes static HTML.
+  YAML, validates it, writes static HTML, and copies the schema to the site
+  root so its `$id` URL resolves.
 - `wrangler.jsonc` — a static-assets-only Cloudflare Worker. `make deploy`
   needs `npx wrangler@4 login` once.
 
+## For machines
+
+The build also emits an [llms.txt][llmstxt] the same way it emits the HTML:
+
+- `/llms.txt` — the site described once, then one line per decision: title,
+  canonical URL, status and summary. A map of the corpus.
+- `/llms-full.txt` — every record inline as Markdown, for a single fetch that
+  carries the whole corpus.
+
+Both are just another medium pointing at the canonical records, so they fall
+out of the same YAML and stay in sync automatically.
+
 [uv]: https://docs.astral.sh/uv/
+[llmstxt]: https://llmstxt.org/
 
 There is deliberately **no ADR number**. The canonical URL —
 `2026-07-27/record-decisions` — is the identity, and a second identifier is
