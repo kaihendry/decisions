@@ -477,6 +477,15 @@ def md_record(adr):
     return "\n".join(out)
 
 
+HEADERS = """\
+/*.txt
+  Content-Type: text/plain; charset=utf-8
+
+/adr.schema.yaml
+  Content-Type: text/yaml; charset=utf-8
+"""
+
+
 def llms_txt(adrs):
     """An /llms.txt index: what the site is, then a link per decision."""
     lines = [
@@ -541,4 +550,7 @@ for adr in adrs:
 (OUT / "llms.txt").write_text(llms_txt(adrs) + "\n")
 (OUT / "llms-full.txt").write_text(llms_full(adrs) + "\n")
 shutil.copy(ROOT / "adr.schema.yaml", OUT / "adr.schema.yaml")
+# Wrangler serves .txt and .yaml with no charset, and browsers then fall back
+# to windows-1252 and mangle every em dash. The HTML is fine: it has a <meta>.
+(OUT / "_headers").write_text(HEADERS)
 print(f"{len(adrs)} decisions -> {OUT}")
