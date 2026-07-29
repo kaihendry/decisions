@@ -73,6 +73,10 @@ validate never reaches the site.
   root so its `$id` URL resolves.
 - `wrangler.jsonc` — a static-assets-only Cloudflare Worker. `make deploy`
   needs `npx wrangler@4 login` once.
+- `.github/workflows/deploy.yml` — the usual path: every push and pull request
+  builds, and a push to `main` publishes. Cloudflare does not support OIDC, so
+  this needs a scoped `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the
+  `production` environment.
 
 ## For machines
 

@@ -1,0 +1,33 @@
+name: deploy
+
+# Every push builds — an invalid record must never reach the site, and it
+# should fail on the PR, not after the merge. Only main publishes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Cloudflare has no OIDC, so the API token is a long-lived secret.
+    # Scoping it to an environment is what limits the blast radius: restrict
+    # `production` to the main branch in repo settings.
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v9
+
+      # Same command as `make build`.
+      - run: ./build.py site
+
+      - uses: cloudflare/wrangler-action@v4
+        if: github.event_name == 'push'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
