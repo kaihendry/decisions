@@ -20,7 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v9
+      # setup-uv publishes no floating major tag past v7, so pin the exact version.
+      - uses: astral-sh/setup-uv@v9.0.0
 
       # Same command as `make build`.
       - run: ./build.py site
